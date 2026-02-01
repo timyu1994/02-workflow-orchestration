@@ -1,195 +1,42 @@
-# Module 1 Homework: Docker & SQL
+# Module 2 Homework: Workflow Orchestration
 
-In this homework we'll prepare the environment and practice
-Docker and SQL
+### Quiz Questions
 
-When submitting your homework, you will also need to include
-a link to your GitHub repository or other public code-hosting
-site.
+1) Within the execution for `Yellow` Taxi data for the year `2020` and month `12`: what is the uncompressed file size (i.e. the output file `yellow_tripdata_2020-12.csv` of the `extract` task)?
+- 128.3 MiB
+- 134.5 MiB
+- 364.7 MiB
+- 692.6 MiB
 
-This repository should contain the code for solving the homework.
+2) What is the rendered value of the variable `file` when the inputs `taxi` is set to `green`, `year` is set to `2020`, and `month` is set to `04` during execution?
+- `{{inputs.taxi}}_tripdata_{{inputs.year}}-{{inputs.month}}.csv` 
+- `green_tripdata_2020-04.csv`
+- `green_tripdata_04_2020.csv`
+- `green_tripdata_2020.csv`
 
-When your solution has SQL or shell commands and not code
-(e.g. python files) file format, include them directly in
-the README file of your repository.
+3) How many rows are there for the `Yellow` Taxi data for all CSV files in the year 2020?
+- 13,537.299
+- 24,648,499
+- 18,324,219
+- 29,430,127
 
+4) How many rows are there for the `Green` Taxi data for all CSV files in the year 2020?
+- 5,327,301
+- 936,199
+- 1,734,051
+- 1,342,034
 
-## Question 1. Understanding Docker images
+5) How many rows are there for the `Yellow` Taxi data for the March 2021 CSV file?
+- 1,428,092
+- 706,911
+- 1,925,152
+- 2,561,031
 
-Run docker with the `python:3.13` image. Use an entrypoint `bash` to interact with the container.
+6) How would you configure the timezone to New York in a Schedule trigger?
+- Add a `timezone` property set to `EST` in the `Schedule` trigger configuration  
+- Add a `timezone` property set to `America/New_York` in the `Schedule` trigger configuration
+- Add a `timezone` property set to `UTC-5` in the `Schedule` trigger configuration
+- Add a `location` property set to `New_York` in the `Schedule` trigger configuration  
 
-What's the version of `pip` in the image?
+* Check the link above to see the due date
 
-- **25.3**
-- 24.3.1
-- 24.2.1
-- 23.3.1
-
-**docker run -it --rm --entrypoint=bash python:3.13  
-pip -V**
-
-## Question 2. Understanding Docker networking and docker-compose
-
-Given the following `docker-compose.yaml`, what is the `hostname` and `port` that pgadmin should use to connect to the postgres database?
-
-```yaml
-services:
-  db:
-    container_name: postgres
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: 'postgres'
-      POSTGRES_PASSWORD: 'postgres'
-      POSTGRES_DB: 'ny_taxi'
-    ports:
-      - '5433:5432'
-    volumes:
-      - vol-pgdata:/var/lib/postgresql/data
-
-  pgadmin:
-    container_name: pgadmin
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "pgadmin@pgadmin.com"
-      PGADMIN_DEFAULT_PASSWORD: "pgadmin"
-    ports:
-      - "8080:80"
-    volumes:
-      - vol-pgadmin_data:/var/lib/pgadmin
-
-volumes:
-  vol-pgdata:
-    name: vol-pgdata
-  vol-pgadmin_data:
-    name: vol-pgadmin_data
-```
-
-- postgres:5433
-- localhost:5432
-- db:5433
-- postgres:5432
-- **db:5432**
-
-If multiple answers are correct, select any 
-
-
-## Prepare the Data
-
-Download the green taxi trips data for November 2025:
-
-```bash
-wget https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-11.parquet
-```
-
-You will also need the dataset with zones:
-
-```bash
-wget https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv
-```
-
-## Question 3. Counting short trips
-
-For the trips in November 2025 (lpep_pickup_datetime between '2025-11-01' and '2025-12-01', exclusive of the upper bound), how many trips had a `trip_distance` of less than or equal to 1 mile?
-
-- 7,853
-- **8,007**
-- 8,254
-- 8,421
-
-SELECT  
-	COUNT(*)  
-FROM public.green_taxi_data  
-WHERE EXTRACT(MONTH FROM lpep_pickup_datetime) = 11  
-	AND trip_distance <= 1
-	
-
-## Question 4. Longest trip for each day
-
-Which was the pick up day with the longest trip distance? Only consider trips with `trip_distance` less than 100 miles (to exclude data errors).
-
-Use the pick up time for your calculations.
-
-- **2025-11-14**
-- 2025-11-20
-- 2025-11-23
-- 2025-11-25
-
-SELECT  
-	lpep_pickup_datetime  
-FROM public.green_taxi_data  
-WHERE  
-	trip_distance < 100  
-ORDER BY trip_distance DESC  
-LIMIT 1
-	
-
-## Question 5. Biggest pickup zone
-
-Which was the pickup zone with the largest `total_amount` (sum of all trips) on November 18th, 2025?
-
-- **East Harlem North**
-- East Harlem South
-- Morningside Heights
-- Forest Hills
-
-SELECT  
-	dim."Zone" AS pickup_zone,  
-	COUNT(txn."PULocationID") AS trips  
-FROM public.green_taxi_data AS txn  
-JOIN public.taxi_zones AS dim  
-ON txn."PULocationID" = dim."LocationID"  
-WHERE lpep_pickup_datetime >= '2025-11-18'  
-  AND lpep_pickup_datetime < '2025-11-19'  
-GROUP BY dim."Zone"  
-ORDER BY trips DESC  
-LIMIT 1
-
-## Question 6. Largest tip
-
-For the passengers picked up in the zone named "East Harlem North" in November 2025, which was the drop off zone that had the largest tip?
-
-Note: it's `tip` , not `trip`. We need the name of the zone, not the ID.
-
-- JFK Airport
-- **Yorkville West**
-- East Harlem North
-- LaGuardia Airport
-
-SELECT  
-	pickup."Zone" AS pickup_zone,  
-	dropoff."Zone" AS dropoff_zone,  
-	txn.tip_amount  
-FROM public.green_taxi_data AS txn  
-JOIN public.taxi_zones AS pickup  
-ON txn."PULocationID" = pickup."LocationID"  
-JOIN public.taxi_zones AS dropoff  
-ON txn."DOLocationID" = dropoff."LocationID"  
-WHERE EXTRACT(MONTH FROM txn.lpep_pickup_datetime) = 11  
-	AND pickup."Zone" = 'East Harlem North'  
-ORDER BY txn.tip_amount DESC  
-LIMIT 1
-
-## Terraform
-
-In this section homework we'll prepare the environment by creating resources in GCP with Terraform.
-
-In your VM on GCP/Laptop/GitHub Codespace install Terraform.
-Copy the files from the course repo
-[here](../../../01-docker-terraform/terraform/terraform) to your VM/Laptop/GitHub Codespace.
-
-Modify the files as necessary to create a GCP Bucket and Big Query Dataset.
-
-
-## Question 7. Terraform Workflow
-
-Which of the following sequences, respectively, describes the workflow for:
-1. Downloading the provider plugins and setting up backend,
-2. Generating proposed changes and auto-executing the plan
-3. Remove all resources managed by terraform`
-
-Answers:
-- terraform import, terraform apply -y, terraform destroy
-- teraform init, terraform plan -auto-apply, terraform rm
-- terraform init, terraform run -auto-approve, terraform destroy
-- **terraform init, terraform apply -auto-approve, terraform destroy**
-- terraform import, terraform apply -y, terraform rm
