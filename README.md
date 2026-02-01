@@ -38,5 +38,3 @@
 - Add a `timezone` property set to `UTC-5` in the `Schedule` trigger configuration
 - Add a `location` property set to `New_York` in the `Schedule` trigger configuration  
 
-* Check the link above to see the due date
-
